@@ -113,8 +113,7 @@ def transform_dashboard_data(df_sql_result):
         'All Tenants': 'All Tenants', '% Campaign & Segment': 'Campaign & Segment %', 'Rows Sent': 'Rows Sent',
         'Paid Media Tenants': 'Paid Media Tenants', 'Paid Media Sends': 'Paid Media Sends', 'Paid Media Rows': 'Paid Media Rows',
         'Paid Media %': 'Paid Media %', 'Journey Adoption': 'Journey Adoption', 'Journeys': 'Journeys',
-        'Journey Clients': 'Journey Clients', 'All Connectors': 'All Connectors',
-        'API Connectors': 'API Connectors', 'Bulk Storage Connectors': 'Bulk Storage Connectors',
+        'Journey Clients': 'Journey Clients',
         'Source Connectors': 'Source Connectors', 'Destination Connectors': 'Destination Connectors',
         'Bi-Directional Connectors': 'Bi-Directional Connectors', 'CS Tenants': 'CS Tenants',
         'CS Tenants Percent': 'CS Tenants Percent', 'Campaign & Segment Rows Sent': 'Campaign & Segment Rows Sent',
@@ -140,8 +139,7 @@ def transform_dashboard_data(df_sql_result):
         'Campaign & Segment Sends', 'Rows Sent', 'Paid Media Tenants',
         'Paid Media Sends', 'Paid Media Rows', 'Journeys', 'Journey Clients', 'Journey Adoption',
         'Total Sends', 'All Tenants', 'Campaign & Segment %', 'Paid Media %', 'CS Tenants', 'CS Tenants Percent',
-        'Campaign & Segment Rows Sent', 'All Connectors', 'API Connectors', 'Bulk Storage Connectors',
-        'Source Connectors', 'Destination Connectors', 'Bi-Directional Connectors',
+        'Campaign & Segment Rows Sent', 'Source Connectors', 'Destination Connectors', 'Bi-Directional Connectors',
         'Amps - Total', 'Amps - Activation', 'Amps - Campaigns', 'Amps - Journeys', 'Amps - Orchestration',
         'Amps - Profile API'
     ]

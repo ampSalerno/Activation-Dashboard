@@ -84,25 +84,12 @@ client_first_week AS (
 connector_stats AS (
   SELECT
       ds.week_ending
-    , COUNT(DISTINCT c.connector_id) AS all_connectors
-    , COUNT(DISTINCT CASE WHEN c.is_api THEN c.connector_id END) AS api_connectors
-    , COUNT(DISTINCT CASE WHEN NOT c.is_api THEN c.connector_id END) AS bulk_storage_connectors
-    , COUNT(DISTINCT CASE WHEN c.is_source AND NOT c.is_destination THEN c.connector_id END) AS source_connectors
-    , COUNT(DISTINCT CASE WHEN c.is_destination AND NOT c.is_source THEN c.connector_id END) AS destination_connectors
-    , COUNT(DISTINCT CASE WHEN c.is_destination AND c.is_source THEN c.connector_id END) AS source_destination_connectors
-    , COUNT(DISTINCT o.tenant_id) AS all_connectors_tenants
-    , COUNT(DISTINCT CASE WHEN c.is_api THEN o.tenant_id END) AS api_connectors_tenants
-    , COUNT(DISTINCT CASE WHEN NOT c.is_api THEN o.tenant_id END) AS bulk_storage_connectors_tenants
-    , COUNT(DISTINCT CASE WHEN c.is_source AND NOT c.is_destination THEN o.tenant_id END) AS source_connectors_tenants
-    , COUNT(DISTINCT CASE WHEN c.is_destination AND NOT c.is_source THEN o.tenant_id END) AS destination_connectors_tenants
-    , COUNT(DISTINCT CASE WHEN c.is_destination AND c.is_source THEN o.tenant_id END) AS source_destination_connectors_tenants
+    , SUM(IFF(c.is_source AND NOT c.is_destination, 1, 0)) AS source_connectors
+    , SUM(IFF(c.is_destination AND NOT c.is_source, 1, 0)) AS destination_connectors
+    , SUM(IFF(c.is_source AND c.is_destination, 1, 0)) AS bi_directional_connectors
   FROM eight_week_date_series AS ds
   CROSS JOIN prod.fishbowl.connectors AS c
-  LEFT JOIN prod.fishbowl.orchestration_events AS o
-    ON c.connector_id = o.connector_id
-    AND o.tenant_billing_flag = 'client'
-    AND NOT o.tenant_is_sandbox
-    AND DATEADD(day, 6, DATE_TRUNC('week', o.completion_datetime)) <= ds.week_ending
+  WHERE c.last_available_date > DATEADD('week', -1, ds.week_ending)
   GROUP BY ds.week_ending
 ),
 amps_metrics AS (
@@ -185,17 +172,11 @@ SELECT 'Journeys' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(ROUND(jour
 UNION ALL
 SELECT 'Journey Adoption' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(running_total_clients) AS "Value", 10 AS sort_order FROM final_metrics
 UNION ALL
-SELECT 'All Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(all_connectors) || ' (' || TO_VARCHAR(all_connectors_tenants) || ')' AS "Value", 11 AS sort_order FROM connector_stats
+SELECT 'Source Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(source_connectors) AS "Value", 11 AS sort_order FROM connector_stats
 UNION ALL
-SELECT 'API Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(api_connectors) || ' (' || TO_VARCHAR(api_connectors_tenants) || ')' AS "Value", 11.1 AS sort_order FROM connector_stats
+SELECT 'Destination Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(destination_connectors) AS "Value", 11.1 AS sort_order FROM connector_stats
 UNION ALL
-SELECT 'Bulk Storage Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(bulk_storage_connectors) || ' (' || TO_VARCHAR(bulk_storage_connectors_tenants) || ')' AS "Value", 11.2 AS sort_order FROM connector_stats
-UNION ALL
-SELECT 'Source Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(source_connectors) || ' (' || TO_VARCHAR(source_connectors_tenants) || ')' AS "Value", 11.3 AS sort_order FROM connector_stats
-UNION ALL
-SELECT 'Destination Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(destination_connectors) || ' (' || TO_VARCHAR(destination_connectors_tenants) || ')' AS "Value", 11.4 AS sort_order FROM connector_stats
-UNION ALL
-SELECT 'Bi-Directional Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(source_destination_connectors) || ' (' || TO_VARCHAR(source_destination_connectors_tenants) || ')' AS "Value", 11.5 AS sort_order FROM connector_stats
+SELECT 'Bi-Directional Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(bi_directional_connectors) AS "Value", 11.2 AS sort_order FROM connector_stats
 UNION ALL
 SELECT 'Amps - Total' AS "Metric", week_ending AS "Week Ending", TO_VARCHAR(ROUND(amps_total)) AS "Value", 12 AS sort_order FROM final_metrics
 UNION ALL

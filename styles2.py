@@ -276,7 +276,7 @@ CHART_DEFINITIONS = {
         "colors": CHART_COLORS["paid_media"]
     },
     "connector": {
-        "metrics": ["All Connectors", "API Connectors", "Bulk Storage Connectors", "Source Connectors", "Destination Connectors", "Bi-Directional Connectors"],
+        "metrics": ["Source Connectors", "Destination Connectors", "Bi-Directional Connectors"],
         "title": "Connector Metrics Trend",
         "colors": CHART_COLORS["connector"]
     },
@@ -309,9 +309,6 @@ PAID_MEDIA_METRICS = [
 ]
 
 CONNECTOR_METRICS = [
-    {"title": "All Connectors", "value_col": "All Connectors", "parenthetical_col": None, "trend_col": "All Connectors"},
-    {"title": "API Connectors", "value_col": "API Connectors", "parenthetical_col": None, "trend_col": "API Connectors"},
-    {"title": "Bulk Storage Connectors", "value_col": "Bulk Storage Connectors", "parenthetical_col": None, "trend_col": "Bulk Storage Connectors"},
     {"title": "Source Connectors", "value_col": "Source Connectors", "parenthetical_col": None, "trend_col": "Source Connectors"},
     {"title": "Destination Connectors", "value_col": "Destination Connectors", "parenthetical_col": None, "trend_col": "Destination Connectors"},
     {"title": "Bi-Directional Connectors", "value_col": "Bi-Directional Connectors", "parenthetical_col": None, "trend_col": "Bi-Directional Connectors"}

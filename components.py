@@ -146,21 +146,14 @@ def create_connectors_tile(latest_week, latest_week_index, dynamic_trend_indicat
     Returns:
         HTML string for the tile
     """
-    all_connectors_val = latest_week.get('All Connectors', 'N/A')
-    all_connectors_arrow = dynamic_trend_indicators.get('All Connectors', ['→'])[latest_week_index]
-    all_connectors_arrow_html = get_arrow_html(all_connectors_arrow)
-    api_connectors_val = latest_week.get('API Connectors', 'N/A')
-    api_connectors_arrow = dynamic_trend_indicators.get('API Connectors', ['→'])[latest_week_index]
-    api_connectors_arrow_html = get_arrow_html(api_connectors_arrow)
-    bulk_storage_connectors_val = latest_week.get('Bulk Storage Connectors', 'N/A')
-    bulk_connectors_arrow = dynamic_trend_indicators.get('Bulk Storage Connectors', ['→'])[latest_week_index]
-    bulk_connectors_arrow_html = get_arrow_html(bulk_connectors_arrow)
     source_connectors_val = latest_week.get('Source Connectors', 'N/A')
     source_connectors_arrow = dynamic_trend_indicators.get('Source Connectors', ['→'])[latest_week_index]
     source_connectors_arrow_html = get_arrow_html(source_connectors_arrow)
+
     destination_connectors_val = latest_week.get('Destination Connectors', 'N/A')
     dest_connectors_arrow = dynamic_trend_indicators.get('Destination Connectors', ['→'])[latest_week_index]
     dest_connectors_arrow_html = get_arrow_html(dest_connectors_arrow)
+
     bi_directional_connectors_val = latest_week.get('Bi-Directional Connectors', 'N/A')
     bi_connectors_arrow = dynamic_trend_indicators.get('Bi-Directional Connectors', ['→'])[latest_week_index]
     bi_connectors_arrow_html = get_arrow_html(bi_connectors_arrow)
@@ -168,10 +161,7 @@ def create_connectors_tile(latest_week, latest_week_index, dynamic_trend_indicat
     html_parts = [
         "<div class='metric-box'>",
         "<div class='metric-name'>CONNECTORS</div>",
-        f"<div class='metric-row'><div class='metric-label-new'>All Connectors</div><div class='metric-value-wrapper'><div class='metric-arrow'>{all_connectors_arrow_html}</div><div class='metric-value-main'>{all_connectors_val}</div></div></div>",
         "<table class='connector-table'>",
-        f"<tr><td class='connector-trend'>{api_connectors_arrow_html}</td><td class='connector-name'>API Connectors</td><td class='connector-value' style='text-align: right'>{api_connectors_val}</td></tr>",
-        f"<tr><td class='connector-trend'>{bulk_connectors_arrow_html}</td><td class='connector-name'>Bulk Storage Connectors</td><td class='connector-value' style='text-align: right'>{bulk_storage_connectors_val}</td></tr>",
         f"<tr><td class='connector-trend'>{source_connectors_arrow_html}</td><td class='connector-name'>Source Connectors</td><td class='connector-value' style='text-align: right'>{source_connectors_val}</td></tr>",
         f"<tr><td class='connector-trend'>{dest_connectors_arrow_html}</td><td class='connector-name'>Destination Connectors</td><td class='connector-value' style='text-align: right'>{destination_connectors_val}</td></tr>",
         f"<tr><td class='connector-trend'>{bi_connectors_arrow_html}</td><td class='connector-name'>Bi-Directional Connectors</td><td class='connector-value' style='text-align: right'>{bi_directional_connectors_val}</td></tr>",
