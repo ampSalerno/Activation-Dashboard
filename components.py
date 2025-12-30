@@ -214,7 +214,7 @@ def get_amps_snippet_html(df_amps, category_name):
     """
 
 
-def create_metric_chart(dates, raw_values, display_values, metrics, title, colors, display_names=None):
+def create_metric_chart(dates, raw_values, display_values, metrics, title, colors, display_names=None, time_period="Week"):
     """
     Create a metric chart using Altair.
 
@@ -226,12 +226,13 @@ def create_metric_chart(dates, raw_values, display_values, metrics, title, color
         title: Chart title
         colors: List of colors to use
         display_names: Optional dictionary mapping metric names to display names
+        time_period: Label for the time period (e.g., "Week" or "Month")
 
     Returns:
         Altair chart object or None if chart could not be created
     """
-    chart_data = {"Week": dates}
-    id_vars = ["Week"]
+    chart_data = {time_period: dates}
+    id_vars = [time_period]
     available_metrics = []
     metric_display_names = {}
 
@@ -262,15 +263,15 @@ def create_metric_chart(dates, raw_values, display_values, metrics, title, color
         line_chart = alt.Chart(chart_data_long).mark_line(
             strokeWidth=3, opacity=0.8, interpolate='linear'
         ).encode(
-            x=alt.X('Week:N', title='Week', sort=None, axis=alt.Axis(labelAngle=45, labelFontSize=10)),
+            x=alt.X(f'{time_period}:N', title=time_period, sort=None, axis=alt.Axis(labelAngle=45, labelFontSize=10)),
             y=alt.Y('Value:Q', title='', scale=alt.Scale(domain=[0, 1]), axis=alt.Axis(labels=False)),
             color=alt.Color('Display_Name:N', scale=alt.Scale(domain=[metric_display_names.get(m, m) for m in available_metrics], range=colors[:len(available_metrics)]), legend=alt.Legend(orient='top', title=None, labelFontSize=12))
         )
         point_chart = alt.Chart(chart_data_long).mark_circle(size=60, opacity=1).encode(
-            x=alt.X('Week:N', sort=None),
+            x=alt.X(f'{time_period}:N', sort=None),
             y=alt.Y('Value:Q'),
             color=alt.Color('Display_Name:N', scale=alt.Scale(domain=[metric_display_names.get(m, m) for m in available_metrics], range=colors[:len(available_metrics)])),
-            tooltip=[alt.Tooltip('Week:N', title='Week'), alt.Tooltip('Display_Name:N', title='Metric'), alt.Tooltip('Display_Value:N', title='Value')]
+            tooltip=[alt.Tooltip(f'{time_period}:N', title=time_period), alt.Tooltip('Display_Name:N', title='Metric'), alt.Tooltip('Display_Value:N', title='Value')]
         )
         return (line_chart + point_chart).properties(height=300, autosize={'type': 'fit-x', 'contains': 'padding'})
 
@@ -292,6 +293,9 @@ def generate_historical_metrics_tiles(df_pivoted, dynamic_trend_indicators, metr
     num_columns_historical = 3
     cols_historical = st.columns(num_columns_historical)
 
+    # Determine which date column to use
+    date_col = 'Month Ending' if 'Month Ending' in df_pivoted.columns else 'Week Ending'
+
     for i, metric_config in enumerate(metrics_config):
         with cols_historical[i % num_columns_historical]:
             metric_title = metric_config["title"]
@@ -300,10 +304,10 @@ def generate_historical_metrics_tiles(df_pivoted, dynamic_trend_indicators, metr
             trend_col = metric_config["trend_col"]
 
             table_rows_html = ""
-            rows = list(df_pivoted.sort_values(by='Week Ending', ascending=False).iterrows())
+            rows = list(df_pivoted.sort_values(by=date_col, ascending=False).iterrows())
 
             for j, (index, row) in enumerate(rows):
-                week_ending_str = row['Week Ending'].strftime("%b %d, %Y")
+                date_ending_str = row[date_col].strftime("%b %d, %Y")
                 current_value = format_large_number(row.get(value_col, 'N/A'))
                 parenthetical_value_html = ""
 
@@ -318,11 +322,11 @@ def generate_historical_metrics_tiles(df_pivoted, dynamic_trend_indicators, metr
 
                     parenthetical_value_html = f'<div class="child-metric">({formatted_parenthetical})</div>'
 
-                week_date = row['Week Ending']
-                arrow_index = df_pivoted[df_pivoted['Week Ending'] == week_date].index.tolist()[0]
+                date_value = row[date_col]
+                arrow_index = df_pivoted[df_pivoted[date_col] == date_value].index.tolist()[0]
                 arrow_indicator = dynamic_trend_indicators.get(trend_col, ['→'])[arrow_index]
                 trend_arrow_html = get_arrow_html(arrow_indicator)
-                table_rows_html += f'<tr><td class="metric-label">{week_ending_str}:</td><td class="metric-value"><div class="value-main">{current_value}</div><div class="trend-arrow">{trend_arrow_html}</div>{parenthetical_value_html}</td></tr>'
+                table_rows_html += f'<tr><td class="metric-label">{date_ending_str}:</td><td class="metric-value"><div class="value-main">{current_value}</div><div class="trend-arrow">{trend_arrow_html}</div>{parenthetical_value_html}</td></tr>'
 
             tile_html = f'<div class="tile-container"><h4 class="tile-header">{metric_title}</h4><table class="metric-table">{table_rows_html}</table></div>'
             st.markdown(tile_html, unsafe_allow_html=True)

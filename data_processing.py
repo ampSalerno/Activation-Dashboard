@@ -4,9 +4,41 @@ Data processing functions for the Activation Dashboard app.
 import streamlit as st
 import pandas as pd
 import numpy as np
-from snowflake.snowpark.context import get_active_session
 from utils import parse_numeric_value, calculate_trend_arrow
 import queries
+
+# Try to import Snowpark first (for Snowflake environment), fall back to connector (for local)
+try:
+    from snowflake.snowpark.context import get_active_session
+    USE_SNOWPARK = True
+except ImportError:
+    USE_SNOWPARK = False
+    import snowflake.connector
+    from config import SNOWFLAKE_CONFIG
+
+
+def get_snowflake_connection():
+    """
+    Get a Snowflake connection for local testing.
+    Uses the snowflake-connector-python library with externalbrowser authentication.
+
+    Returns:
+        Snowflake connection object or None if an error occurs
+    """
+    try:
+        conn = snowflake.connector.connect(
+            account=SNOWFLAKE_CONFIG['account'],
+            user=SNOWFLAKE_CONFIG['user'],
+            authenticator='externalbrowser',
+            warehouse=SNOWFLAKE_CONFIG.get('warehouse'),
+            database=SNOWFLAKE_CONFIG.get('database'),
+            schema=SNOWFLAKE_CONFIG.get('schema'),
+            role=SNOWFLAKE_CONFIG.get('role')
+        )
+        return conn
+    except Exception as e:
+        st.error(f"Failed to connect to Snowflake: {e}")
+        return None
 
 
 def get_snowflake_session():
@@ -16,11 +48,78 @@ def get_snowflake_session():
     Returns:
         Snowflake session object or None if an error occurs
     """
+    if not USE_SNOWPARK:
+        return None
     try:
         return get_active_session()
     except Exception as e:
         st.error(f"Failed to get active Snowflake session: {e}. Ensure this app is run within a Snowflake environment.")
         return None
+
+
+def execute_query_with_connection(conn, query):
+    """
+    Execute a SQL query using an existing connection.
+
+    Args:
+        conn: Existing Snowflake connection
+        query: SQL query to execute
+
+    Returns:
+        Pandas DataFrame with the query results
+    """
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query)
+
+        # Fetch results as pandas DataFrame
+        try:
+            df = cursor.fetch_pandas_all()
+        except Exception:
+            # Fallback for queries that don't support pandas
+            results = cursor.fetchall()
+            columns = [col[0] for col in cursor.description] if cursor.description else []
+            df = pd.DataFrame(results, columns=columns)
+
+        cursor.close()
+        return df
+    except Exception as e:
+        st.error(f"Error executing SQL query: {e}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=600)
+def execute_query(query):
+    """
+    Execute a SQL query and return results as a pandas DataFrame.
+    Automatically detects whether to use Snowpark or snowflake-connector.
+
+    Args:
+        query: SQL query to execute
+
+    Returns:
+        Pandas DataFrame with the query results
+    """
+    try:
+        if USE_SNOWPARK:
+            # Running in Snowflake environment
+            session = get_snowflake_session()
+            if not session:
+                return pd.DataFrame()
+            df = session.sql(query).to_pandas()
+        else:
+            # Running locally - create connection just for this query
+            conn = get_snowflake_connection()
+            if not conn:
+                return pd.DataFrame()
+
+            df = execute_query_with_connection(conn, query)
+            conn.close()
+
+        return df
+    except Exception as e:
+        st.error(f"Error executing SQL query: {e}")
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=600)
@@ -35,12 +134,8 @@ def get_amps_data(_session, query):
     Returns:
         Pandas DataFrame with the query results
     """
-    try:
-        df = _session.sql(query).to_pandas()
-        return df
-    except Exception as e:
-        st.error(f"Error executing AMPS SQL query: {e}")
-        return pd.DataFrame()
+    # Backward compatible: use execute_query which handles both modes
+    return execute_query(query)
 
 
 @st.cache_data(ttl=600)
@@ -55,12 +150,8 @@ def get_data_from_snowflake(_session, query):
     Returns:
         Pandas DataFrame with the query results
     """
-    try:
-        df_raw = _session.sql(query).to_pandas()
-        return df_raw
-    except Exception as e:
-        st.error(f"Error executing SQL query: {e}")
-        return pd.DataFrame()
+    # Backward compatible: use execute_query which handles both modes
+    return execute_query(query)
 
 
 def fetch_all_dashboard_data():
@@ -70,31 +161,66 @@ def fetch_all_dashboard_data():
     Returns:
         Tuple of (df_amps, df_sql_result, df_journey_stats, df_new_journey_tenants, unique_journey_tenants) or None if there was an error
     """
-    session = get_snowflake_session()
-    if not session:
-        return None
-
-    df_amps = get_amps_data(session, queries.AMPS_QUERY)
-    df_sql_result = get_data_from_snowflake(session, queries.MAIN_DASHBOARD_QUERY)
-    df_journey_stats = get_data_from_snowflake(session, queries.JOURNEY_WEEKLY_STATS_QUERY)
-    df_new_journey_tenants = get_data_from_snowflake(session, queries.NEW_JOURNEY_TENANTS_QUERY)
-    df_unique_journey_tenants = get_data_from_snowflake(session, queries.UNIQUE_JOURNEY_TENANTS_QUERY)
-
-    if df_sql_result.empty:
-        st.warning("No data retrieved for the main dashboard. Please check your SQL query and Snowflake connection.")
-        return None
-
-    # --- THIS IS THE FIX ---
-    # Extract the unique journey tenants count (the "35")
-    unique_journey_tenants = 0  # Default value
-    if not df_unique_journey_tenants.empty:
-        # Get the first value from the first row (should be the count)
-        unique_journey_tenants = int(df_unique_journey_tenants.iloc[0, 0])
+    # For Snowpark, get session once and reuse; for local, create one connection
+    if USE_SNOWPARK:
+        session = get_snowflake_session()
+        if not session:
+            st.error("Failed to get Snowflake session")
+            return None
+        # Session will be reused by the cached functions
+        conn = None
     else:
-        st.warning("Could not retrieve unique journey tenants count.")
-    # --- END OF FIX ---
+        # Running locally - create ONE connection for all queries
+        conn = get_snowflake_connection()
+        if not conn:
+            st.error("Failed to connect to Snowflake")
+            return None
+        session = None
 
-    return df_amps, df_sql_result, df_journey_stats, df_new_journey_tenants, unique_journey_tenants
+    try:
+        if USE_SNOWPARK:
+            df_amps = get_amps_data(session, queries.AMPS_QUERY)
+        else:
+            df_amps = execute_query_with_connection(conn, queries.AMPS_QUERY)
+
+        if USE_SNOWPARK:
+            df_sql_result = get_data_from_snowflake(session, queries.MAIN_DASHBOARD_QUERY)
+        else:
+            df_sql_result = execute_query_with_connection(conn, queries.MAIN_DASHBOARD_QUERY)
+
+        if USE_SNOWPARK:
+            df_journey_stats = get_data_from_snowflake(session, queries.JOURNEY_WEEKLY_STATS_QUERY)
+        else:
+            df_journey_stats = execute_query_with_connection(conn, queries.JOURNEY_WEEKLY_STATS_QUERY)
+
+        if USE_SNOWPARK:
+            df_new_journey_tenants = get_data_from_snowflake(session, queries.NEW_JOURNEY_TENANTS_QUERY)
+        else:
+            df_new_journey_tenants = execute_query_with_connection(conn, queries.NEW_JOURNEY_TENANTS_QUERY)
+
+        if USE_SNOWPARK:
+            df_unique_journey_tenants = get_data_from_snowflake(session, queries.UNIQUE_JOURNEY_TENANTS_QUERY)
+        else:
+            df_unique_journey_tenants = execute_query_with_connection(conn, queries.UNIQUE_JOURNEY_TENANTS_QUERY)
+
+        if df_sql_result.empty:
+            st.warning("No data retrieved for the main dashboard. Please check your SQL query and Snowflake connection.")
+            return None
+
+        # Extract the unique journey tenants count
+        unique_journey_tenants = 0  # Default value
+        if not df_unique_journey_tenants.empty:
+            # Get the first value from the first row (should be the count)
+            unique_journey_tenants = int(df_unique_journey_tenants.iloc[0, 0])
+        else:
+            st.warning("Could not retrieve unique journey tenants count.")
+
+        return df_amps, df_sql_result, df_journey_stats, df_new_journey_tenants, unique_journey_tenants
+
+    finally:
+        # Close connection if we created one
+        if conn is not None:
+            conn.close()
 
 
 def transform_dashboard_data(df_sql_result):
@@ -168,6 +294,81 @@ def transform_dashboard_data(df_sql_result):
             dynamic_trend_indicators[col_name] = ["→"] * len(df_pivoted)
 
     return df_pivoted, df_pivoted_latest, dynamic_trend_indicators
+
+
+def aggregate_weekly_to_monthly(df_pivoted, dynamic_trend_indicators):
+    """
+    Aggregate weekly data to monthly data.
+
+    Args:
+        df_pivoted: DataFrame with weekly data
+        dynamic_trend_indicators: Dictionary of trend indicators for weekly data
+
+    Returns:
+        Tuple of (df_monthly, df_monthly_latest, monthly_trend_indicators)
+    """
+    if df_pivoted.empty:
+        return pd.DataFrame(), pd.DataFrame(), {}
+
+    # Create a copy and add month column
+    df_monthly_prep = df_pivoted.copy()
+    df_monthly_prep['Month'] = df_monthly_prep['Week Ending'].dt.to_period('M')
+
+    # Get numeric columns (those with _NUM suffix from transform)
+    numeric_cols = [col for col in df_monthly_prep.columns if col.endswith('_NUM')]
+
+    # Identify point-in-time metrics (these should use 'last' not 'sum')
+    # These represent state at a point in time, not cumulative counts
+    point_in_time_keywords = ['Connector', 'Tenants', 'Adoption', 'Clients']
+    point_in_time_cols = [col for col in numeric_cols if any(keyword in col for keyword in point_in_time_keywords)]
+
+    # Group by month and aggregate
+    agg_dict = {}
+    for col in df_monthly_prep.columns:
+        if col in ['Week Ending', 'Month']:
+            continue
+        elif col in point_in_time_cols:
+            # For point-in-time metrics, use the last value of the month
+            agg_dict[col] = 'last'
+        elif col in numeric_cols:
+            # Sum cumulative metrics (like sends, journeys run, rows sent, etc.)
+            agg_dict[col] = 'sum'
+        else:
+            # For all display values (including percentages), take the last value of the month
+            # We can't average string percentages like "50%"
+            agg_dict[col] = 'last'
+
+    df_monthly = df_monthly_prep.groupby('Month').agg(agg_dict).reset_index()
+
+    # Convert Month period back to timestamp (end of month)
+    df_monthly['Month Ending'] = df_monthly['Month'].dt.to_timestamp('M')
+    df_monthly = df_monthly.drop('Month', axis=1)
+    df_monthly = df_monthly.sort_values(by='Month Ending', ascending=True)
+    df_monthly_latest = df_monthly.sort_values(by='Month Ending', ascending=False)
+
+    # Calculate monthly trend indicators
+    monthly_trend_indicators = {}
+    for col_name in numeric_cols:
+        if col_name in df_monthly.columns:
+            trends = []
+            for i in range(len(df_monthly)):
+                current_val = df_monthly[col_name].iloc[i]
+                if i > 0:
+                    previous_val = df_monthly[col_name].iloc[i-1]
+                    trends.append(calculate_trend_arrow(current_val, previous_val))
+                else:
+                    trends.append("→")
+            # Debug output for connectors
+            metric_name = col_name.replace('_NUM', '')
+            if 'Connector' in metric_name:
+                import sys
+                sys.stderr.write(f"DEBUG {metric_name}: values={df_monthly[col_name].tolist()}, trends={trends}\n")
+                sys.stderr.flush()
+            monthly_trend_indicators[metric_name] = trends
+        else:
+            monthly_trend_indicators[col_name.replace('_NUM', '')] = ["→"] * len(df_monthly)
+
+    return df_monthly, df_monthly_latest, monthly_trend_indicators
 
 
 @st.cache_data(ttl=600)
@@ -267,7 +468,7 @@ def extract_raw_values(df_pivoted, numeric_cols_for_trend):
     Extract raw values from the DataFrame for charting.
 
     Args:
-        df_pivoted: The pivoted DataFrame
+        df_pivoted: The pivoted DataFrame (weekly or monthly)
         numeric_cols_for_trend: List of numeric columns to extract
 
     Returns:
@@ -275,7 +476,10 @@ def extract_raw_values(df_pivoted, numeric_cols_for_trend):
     """
     raw_data, display_values, formatted_dates = {}, {}, []
 
-    for date in df_pivoted['Week Ending']:
+    # Determine which date column to use
+    date_col = 'Month Ending' if 'Month Ending' in df_pivoted.columns else 'Week Ending'
+
+    for date in df_pivoted[date_col]:
         formatted_dates.append(date.strftime('%b %d, %Y'))
 
     for metric in numeric_cols_for_trend:

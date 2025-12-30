@@ -322,3 +322,25 @@ AMPS_METRICS = [
     {"title": "Orchestration Amps", "value_col": "Amps - Orchestration", "parenthetical_col": None, "trend_col": "Amps - Orchestration"},
     {"title": "Profile API Amps", "value_col": "Amps - Profile API", "parenthetical_col": None, "trend_col": "Amps - Profile API"}
 ]
+
+# Monthly metric configurations (simplified per boss's requirements)
+ACTIVATION_METRICS_MONTHLY = [
+    {"title": "Tenants with Campaign/Segment Sends", "value_col": "CS Tenants", "parenthetical_col": "CS Tenants Percent", "trend_col": "CS Tenants"},
+    {"title": "Campaign & Segment Sends", "value_col": "Campaign & Segment Sends", "parenthetical_col": None, "trend_col": "Campaign & Segment Sends"},
+    {"title": "Campaign & Segment Rows Sent", "value_col": "Campaign & Segment Rows Sent", "parenthetical_col": None, "trend_col": "Campaign & Segment Rows Sent"}
+]
+
+# Journey monthly - same as weekly
+JOURNEY_METRICS_MONTHLY = JOURNEY_METRICS
+
+# Paid Media monthly - same as weekly
+PAID_MEDIA_METRICS_MONTHLY = PAID_MEDIA_METRICS
+
+# Connectors monthly - only Inbound (Source) & Outbound (Destination)
+CONNECTOR_METRICS_MONTHLY = [
+    {"title": "Source Connectors (Inbound)", "value_col": "Source Connectors", "parenthetical_col": None, "trend_col": "Source Connectors"},
+    {"title": "Destination Connectors (Outbound)", "value_col": "Destination Connectors", "parenthetical_col": None, "trend_col": "Destination Connectors"}
+]
+
+# Amps monthly - same as weekly
+AMPS_METRICS_MONTHLY = AMPS_METRICS
