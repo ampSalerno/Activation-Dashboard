@@ -89,7 +89,8 @@ connector_stats AS (
     , SUM(IFF(c.is_source AND c.is_destination, 1, 0)) AS bi_directional_connectors
   FROM eight_week_date_series AS ds
   CROSS JOIN prod.fishbowl.connectors AS c
-  WHERE c.last_available_date > DATEADD('week', -1, ds.week_ending)
+  WHERE c.first_available_date <= ds.week_ending
+    AND c.last_available_date >= DATEADD('day', -14, ds.week_ending)
   GROUP BY ds.week_ending
 ),
 amps_metrics AS (
