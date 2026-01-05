@@ -241,7 +241,7 @@ def transform_dashboard_data(df_sql_result):
         'Paid Media %': 'Paid Media %', 'Journey Adoption': 'Journey Adoption', 'Journeys': 'Journeys',
         'Journey Clients': 'Journey Clients',
         'Source Connectors': 'Source Connectors', 'Destination Connectors': 'Destination Connectors',
-        'Bi-Directional Connectors': 'Bi-Directional Connectors', 'CS Tenants': 'CS Tenants',
+        'CS Tenants': 'CS Tenants',
         'CS Tenants Percent': 'CS Tenants Percent', 'Campaign & Segment Rows Sent': 'Campaign & Segment Rows Sent',
         'Amps - Total': 'Amps - Total', 'Amps - Activation': 'Amps - Activation', 'Amps - Campaigns': 'Amps - Campaigns',
         'Amps - Journeys': 'Amps - Journeys', 'Amps - Orchestration': 'Amps - Orchestration',
@@ -265,7 +265,7 @@ def transform_dashboard_data(df_sql_result):
         'Campaign & Segment Sends', 'Rows Sent', 'Paid Media Tenants',
         'Paid Media Sends', 'Paid Media Rows', 'Journeys', 'Journey Clients', 'Journey Adoption',
         'Total Sends', 'All Tenants', 'Campaign & Segment %', 'Paid Media %', 'CS Tenants', 'CS Tenants Percent',
-        'Campaign & Segment Rows Sent', 'Source Connectors', 'Destination Connectors', 'Bi-Directional Connectors',
+        'Campaign & Segment Rows Sent', 'Source Connectors', 'Destination Connectors',
         'Amps - Total', 'Amps - Activation', 'Amps - Campaigns', 'Amps - Journeys', 'Amps - Orchestration',
         'Amps - Profile API'
     ]

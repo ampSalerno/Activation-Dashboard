@@ -154,17 +154,12 @@ def create_connectors_tile(latest_week, latest_week_index, dynamic_trend_indicat
     dest_connectors_arrow = dynamic_trend_indicators.get('Destination Connectors', ['→'])[latest_week_index]
     dest_connectors_arrow_html = get_arrow_html(dest_connectors_arrow)
 
-    bi_directional_connectors_val = latest_week.get('Bi-Directional Connectors', 'N/A')
-    bi_connectors_arrow = dynamic_trend_indicators.get('Bi-Directional Connectors', ['→'])[latest_week_index]
-    bi_connectors_arrow_html = get_arrow_html(bi_connectors_arrow)
-
     html_parts = [
         "<div class='metric-box'>",
         "<div class='metric-name'>CONNECTORS</div>",
         "<table class='connector-table'>",
         f"<tr><td class='connector-trend'>{source_connectors_arrow_html}</td><td class='connector-name'>Source Connectors</td><td class='connector-value' style='text-align: right'>{source_connectors_val}</td></tr>",
         f"<tr><td class='connector-trend'>{dest_connectors_arrow_html}</td><td class='connector-name'>Destination Connectors</td><td class='connector-value' style='text-align: right'>{destination_connectors_val}</td></tr>",
-        f"<tr><td class='connector-trend'>{bi_connectors_arrow_html}</td><td class='connector-name'>Bi-Directional Connectors</td><td class='connector-value' style='text-align: right'>{bi_directional_connectors_val}</td></tr>",
         "</table>",
         "</div>"
     ]
