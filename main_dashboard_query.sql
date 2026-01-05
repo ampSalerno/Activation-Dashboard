@@ -84,9 +84,8 @@ client_first_week AS (
 connector_stats AS (
   SELECT
       ds.week_ending
-    , SUM(IFF(c.is_source AND NOT c.is_destination, 1, 0)) AS source_connectors
-    , SUM(IFF(c.is_destination AND NOT c.is_source, 1, 0)) AS destination_connectors
-    , SUM(IFF(c.is_source AND c.is_destination, 1, 0)) AS bi_directional_connectors
+    , SUM(IFF(c.is_source = TRUE, 1, 0)) AS source_connectors
+    , SUM(IFF(c.is_destination = TRUE, 1, 0)) AS destination_connectors
   FROM eight_week_date_series AS ds
   CROSS JOIN prod.fishbowl.connectors AS c
   WHERE c.first_available_date <= ds.week_ending
@@ -176,8 +175,6 @@ UNION ALL
 SELECT 'Source Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(source_connectors) AS "Value", 11 AS sort_order FROM connector_stats
 UNION ALL
 SELECT 'Destination Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(destination_connectors) AS "Value", 11.1 AS sort_order FROM connector_stats
-UNION ALL
-SELECT 'Bi-Directional Connectors' AS Metric, week_ending AS "Week Ending", TO_VARCHAR(bi_directional_connectors) AS "Value", 11.2 AS sort_order FROM connector_stats
 UNION ALL
 SELECT 'Amps - Total' AS "Metric", week_ending AS "Week Ending", TO_VARCHAR(ROUND(amps_total)) AS "Value", 12 AS sort_order FROM final_metrics
 UNION ALL
