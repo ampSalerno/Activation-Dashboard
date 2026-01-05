@@ -1,7 +1,7 @@
 WITH eight_week_date_series AS (
   SELECT
     DATEADD(week, -1 * (ROW_NUMBER() OVER (ORDER BY NULL) - 1), DATEADD(day, -1, DATE_TRUNC('week', CURRENT_DATE()))) AS week_ending
-  FROM TABLE(GENERATOR(ROWCOUNT => 10))
+  FROM TABLE(GENERATOR(ROWCOUNT => 52))
 ),
 tenants_expanded as (
     SELECT DISTINCT tenant
